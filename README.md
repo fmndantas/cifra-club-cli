@@ -38,11 +38,16 @@ Options:
 ### Download
 
 ```bash
-cifra-club-cli download "https://www.cifraclub.com.br/djavan/lilas/" --output lilas.txt
+cifra-club-cli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html"
 ```
 
-> Note: `download` is a work-in-progress stub and does not save a file yet.
-> Use `print-chord-chart.sh` in the meantime.
+The command fetches the print page, extracts and cleans the chord chart, and
+writes the plain text to standard output. Redirect the output to save it to a
+file:
+
+```bash
+cifra-club-cli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" > lilas.txt
+```
 
 ## Debug logging
 
