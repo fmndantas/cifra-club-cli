@@ -86,7 +86,7 @@ type DownloadCmd struct {
 
 // fetchChordChart downloads the print page and returns its cleaned plain-text
 // chart, ending with a single newline (like the shell script's output).
-func fetchChordChart(url string) (string, error) {
+func fetchChordChart(url string, cleanFn func(string) (string, error)) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
@@ -106,13 +106,13 @@ func fetchChordChart(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return internal.ConvertHtmlChordChartToTxt(string(body)), nil
+	return cleanFn(string(body))
 }
 
 func (cmd *DownloadCmd) Run(ctx *Context) error {
 	slog.Info("running download")
 	slog.Debug("download url", "url", cmd.Url)
-	chart, err := fetchChordChart(cmd.Url)
+	chart, err := fetchChordChart(cmd.Url, internal.ConvertHtmlToTxtParse)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fmndantas/cifraclubcli/internal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +22,7 @@ func TestFetchChordChart(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	result, err := fetchChordChart(srv.URL + "/djavan/lilas/imprimir.html")
+	result, err := fetchChordChart(srv.URL + "/djavan/lilas/imprimir.html", internal.ConvertHtmlToTxtParse)
 	require.NoError(t, err)
 	assert.Equal(t, "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36", gotUserAgent, "server never saw the browser user-agent")
 	assert.Equal(t, "*/*", gotAccept)
@@ -35,6 +36,6 @@ func TestFetchChordChartRejectsNonOkStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := fetchChordChart(srv.URL)
+	_, err := fetchChordChart(srv.URL, internal.ConvertHtmlToTxtParse)
 	require.Error(t, err)
 }

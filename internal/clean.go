@@ -4,9 +4,11 @@ import (
 	"html"
 	"regexp"
 	"strings"
+
+	netHtml "golang.org/x/net/html"
 )
 
-func ConvertHtmlChordChartToTxt(content string) string {
+func ConvertHtmlToTxtRegex(content string) (string, error) {
 	var (
 		chordContentRE = regexp.MustCompile(`(?s)<pre[^>]*data-chord-content[^>]*>(.*?)</pre>`)
 		bTagRE         = regexp.MustCompile(`</?b[^>]*>`)
@@ -30,5 +32,24 @@ func ConvertHtmlChordChartToTxt(content string) string {
 	text = html.UnescapeString(text)
 	text = newlinesRE.ReplaceAllString(text, "\n\n")
 
-	return strings.TrimSpace(text) + "\n"
+	return strings.TrimSpace(text) + "\n", nil
+}
+
+func ConvertHtmlToTxtParse(content string) (string, error) {
+	document, err := netHtml.Parse(strings.NewReader(content))
+	if err != nil {
+		return "", err
+	}
+	var result strings.Builder
+	for node := range document.Descendants() {
+		if node.Type == netHtml.ElementNode && node.Data == "pre" {
+			for d := range node.Descendants() {
+				if d.Type == netHtml.TextNode {
+					result.WriteString(d.Data)
+				}
+			}
+			result.WriteString("\n")
+		}
+	}
+	return result.String(), nil
 }

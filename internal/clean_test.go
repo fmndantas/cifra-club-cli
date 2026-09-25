@@ -11,7 +11,7 @@ import (
 	"github.com/fmndantas/cifraclubcli/internal"
 )
 
-func TestConvertHtmlChordChartToTxt(t *testing.T) {
+func TestConvertHtmlToTxtRegex(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -31,12 +31,15 @@ func TestConvertHtmlChordChartToTxt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, internal.ConvertHtmlChordChartToTxt(tt.input))
+			result, err := internal.ConvertHtmlToTxtRegex(tt.input)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, result)
 		})
 	}
 }
 
-func TestCleanPrintedChordChart(t *testing.T) {
+func TestChordChartConversionWithRegex(t *testing.T) {
+	t.Skip("deprecated")
 	cases := []struct {
 		id           string
 		htmlFile     string
@@ -51,7 +54,30 @@ func TestCleanPrintedChordChart(t *testing.T) {
 			require.NoError(t, err, "read html file")
 			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
 			require.NoError(t, err, "read expected file")
-			result := internal.ConvertHtmlChordChartToTxt(string(htmlContent))
+			result, err := internal.ConvertHtmlToTxtRegex(string(htmlContent))
+			require.NoError(t, err)
+			assert.Equal(t, string(expectedContent), result, "result is not the expected")
+		})
+	}
+}
+
+func TestChordChartConversionWithParse(t *testing.T) {
+	cases := []struct {
+		id           string
+		htmlFile     string
+		expectedFile string
+	}{
+		{"lilas", "lilas.html", "lilas.txt"},
+		{"um dia um adeus", "um-dia-um-adeus.html", "um-dia-um-adeus.txt"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.id, func(t *testing.T) {
+			htmlContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.htmlFile))
+			require.NoError(t, err, "read html file")
+			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
+			require.NoError(t, err, "read expected file")
+			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent))
+			require.NoError(t, err)
 			assert.Equal(t, string(expectedContent), result, "result is not the expected")
 		})
 	}
