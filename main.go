@@ -106,7 +106,7 @@ func fetchChordChart(url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return internal.CleanHtmlFile(string(body)), nil
+	return internal.ConvertHtmlChordChartToTxt(string(body)), nil
 }
 
 func (cmd *DownloadCmd) Run(ctx *Context) error {

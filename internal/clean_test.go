@@ -11,7 +11,7 @@ import (
 	"github.com/fmndantas/cifraclubcli/internal"
 )
 
-func TestCleanHtmlFile(t *testing.T) {
+func TestConvertHtmlChordChartToTxt(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -31,7 +31,7 @@ func TestCleanHtmlFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, internal.CleanHtmlFile(tt.input))
+			assert.Equal(t, tt.want, internal.ConvertHtmlChordChartToTxt(tt.input))
 		})
 	}
 }
@@ -51,7 +51,7 @@ func TestCleanPrintedChordChart(t *testing.T) {
 			require.NoError(t, err, "read html file")
 			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
 			require.NoError(t, err, "read expected file")
-			result := internal.CleanHtmlFile(string(htmlContent))
+			result := internal.ConvertHtmlChordChartToTxt(string(htmlContent))
 			assert.Equal(t, string(expectedContent), result, "result is not the expected")
 		})
 	}

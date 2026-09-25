@@ -6,15 +6,14 @@ import (
 	"strings"
 )
 
-var (
-	chordContentRE = regexp.MustCompile(`(?s)<pre[^>]*data-chord-content[^>]*>(.*?)</pre>`)
-	bTagRE         = regexp.MustCompile(`</?b[^>]*>`)
-	closingTagRE   = regexp.MustCompile(`</(?:div|span)>`)
-	openingTagRE   = regexp.MustCompile(`<(?:div|span)[^>]*>`)
-	newlinesRE     = regexp.MustCompile(`\n{3,}`)
-)
-
-func CleanHtmlFile(content string) string {
+func ConvertHtmlChordChartToTxt(content string) string {
+	var (
+		chordContentRE = regexp.MustCompile(`(?s)<pre[^>]*data-chord-content[^>]*>(.*?)</pre>`)
+		bTagRE         = regexp.MustCompile(`</?b[^>]*>`)
+		closingTagRE   = regexp.MustCompile(`</(?:div|span)>`)
+		openingTagRE   = regexp.MustCompile(`<(?:div|span)[^>]*>`)
+		newlinesRE     = regexp.MustCompile(`\n{3,}`)
+	)
 	blocks := chordContentRE.FindAllStringSubmatch(content, -1)
 	text := content
 	if len(blocks) > 0 {
