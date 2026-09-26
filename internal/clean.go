@@ -42,18 +42,36 @@ func ConvertHtmlToTxtParse(content string, transpose int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var result strings.Builder
+	var (
+		result strings.Builder
+		errs   error
+	)
 	for node := range document.Descendants() {
 		if node.Type == netHtml.ElementNode && node.Data == "pre" {
 			for d := range node.Descendants() {
+				isThisNodeAChord := d.Parent != nil && d.Parent.Type == netHtml.ElementNode && d.Parent.Data == "b"
 				if d.Type == netHtml.TextNode {
-					result.WriteString(d.Data)
+					if isThisNodeAChord {
+						chord, err := ParseChord(d.Data)
+						transposedChord := chord.Transpose(transpose)
+						if err != nil {
+							errs = errors.Join(err)
+						} else {
+							result.WriteString(transposedChord.String())
+						}
+					} else {
+						result.WriteString(d.Data)
+					}
 				}
 			}
 			result.WriteString("\n")
 		}
 	}
-	return result.String(), nil
+	if errs != nil {
+		return "", errs
+	} else {
+		return result.String(), nil
+	}
 }
 
 func ParseChord(chordString string) (Chord, error) {

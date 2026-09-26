@@ -78,7 +78,7 @@ func TestChordChartConversionWithParse(t *testing.T) {
 			require.NoError(t, err, "read html file")
 			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
 			require.NoError(t, err, "read expected file")
-			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent), 0)
+			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent), tt.transpose)
 			require.NoError(t, err)
 			assert.Equal(t, string(expectedContent), result, "result is not the expected")
 		})
