@@ -6,29 +6,25 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
-	"strings"
+	"strconv"
 
 	"github.com/alecthomas/kong"
 	"github.com/fmndantas/cifraclubcli/internal"
 )
 
 var (
-	searchUrl = "https://solr.sscdn.co/cc/c7/?q=%s&limit=%d"
+	searchUrl = "https://solr.sscdn.co/cc/c7/?%s"
 	printUrl  = "https://www.cifraclub.com.br/%s/%s/imprimir.html"
 	userAgent = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
 )
 
 func createSearchUrl(content string, limit int) string {
-	fragments := strings.Split(content, " ")
-	nonEmptyFragments := make([]string, 0)
-	for _, f := range fragments {
-		if len(f) > 0 {
-			nonEmptyFragments = append(nonEmptyFragments, f)
-		}
-	}
-	joinedContent := strings.Join(nonEmptyFragments, "+")
-	return fmt.Sprintf(searchUrl, joinedContent, limit)
+	params := url.Values{}
+	params.Set("q", content)
+	params.Set("limit", strconv.Itoa(limit))
+	return fmt.Sprintf(searchUrl, params.Encode())
 }
 
 type Context struct {
@@ -36,7 +32,7 @@ type Context struct {
 }
 
 type SearchCmd struct {
-	Limit   int    `help:"Maximum number of results the search should return"`
+	Limit   int    `help:"Maximum number of results the search should return" default:"10"`
 	Content string `arg:"" name:"content" help:"Content to search."`
 }
 
@@ -52,8 +48,7 @@ type SearchResponse struct {
 }
 
 func (cmd *SearchCmd) Run(ctx *Context) error {
-	slog.Info("running search")
-	slog.Debug("search content", "content", cmd.Content)
+	slog.Debug("running search", "content", cmd.Content)
 	url := createSearchUrl(cmd.Content, cmd.Limit)
 	slog.Debug("search url", "url", url)
 	r, err := http.Get(url)
@@ -68,15 +63,15 @@ func (cmd *SearchCmd) Run(ctx *Context) error {
 	slog.Debug("raw response", "body", string(body))
 	var result SearchResponse
 	if err := json.Unmarshal(body, &result); err != nil {
-		return err
+		return fmt.Errorf("when unmarshaling search result: %w", err)
 	}
-	slog.Info("search completed", "results", len(result.Response.Docs))
-	for i, song := range result.Response.Docs {
+	slog.Debug("search completed", "number of results", len(result.Response.Docs))
+	for _, song := range result.Response.Docs {
 		if len(song.Dns) > 0 && len(song.Url) > 0 {
-			fmt.Printf("[%d] %s\n", i+1, fmt.Sprintf(printUrl, song.Dns, song.Url))
+			fmt.Printf("%s\n", fmt.Sprintf(printUrl, song.Dns, song.Url))
 		}
 	}
-	slog.Info("done")
+	slog.Debug("done")
 	return nil
 }
 
