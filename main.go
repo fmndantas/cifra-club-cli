@@ -32,7 +32,7 @@ type Context struct {
 }
 
 type SearchCmd struct {
-	Limit   int    `help:"Maximum number of results the search should return" default:"10"`
+	Limit   int    `help:"Maximum number of results the search should return" default:"10" short:"l"`
 	Content string `arg:"" name:"content" help:"Content to search."`
 }
 
@@ -66,22 +66,21 @@ func (cmd *SearchCmd) Run(ctx *Context) error {
 		return fmt.Errorf("when unmarshaling search result: %w", err)
 	}
 	slog.Debug("search completed", "number of results", len(result.Response.Docs))
-	for _, song := range result.Response.Docs {
-		if len(song.Dns) > 0 && len(song.Url) > 0 {
-			fmt.Printf("%s\n", fmt.Sprintf(printUrl, song.Dns, song.Url))
-		}
+	for i, song := range result.Response.Docs {
+		fmt.Printf("[%d] %s\n", i+1, fmt.Sprintf(printUrl, song.Dns, song.Url))
 	}
 	slog.Debug("done")
 	return nil
 }
 
 type DownloadCmd struct {
-	Url string `arg:"" name:"url" help:"Chord chart URL."`
+	Url       string `arg:"" name:"url" help:"Chord chart URL."`
+	Transpose int    `help:"Number of negative/positive semitones to transpose chords" default:"0" short:"t"`
 }
 
 // fetchChordChart downloads the print page and returns its cleaned plain-text
 // chart, ending with a single newline (like the shell script's output).
-func fetchChordChart(url string, cleanFn func(string) (string, error)) (string, error) {
+func fetchChordChart(url string, transpose int, cleanFn func(string, int) (string, error)) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err
@@ -101,13 +100,13 @@ func fetchChordChart(url string, cleanFn func(string) (string, error)) (string, 
 	if err != nil {
 		return "", err
 	}
-	return cleanFn(string(body))
+	return cleanFn(string(body), transpose)
 }
 
 func (cmd *DownloadCmd) Run(ctx *Context) error {
 	slog.Info("running download")
 	slog.Debug("download url", "url", cmd.Url)
-	chart, err := fetchChordChart(cmd.Url, internal.ConvertHtmlToTxtParse)
+	chart, err := fetchChordChart(cmd.Url, cmd.Transpose, internal.ConvertHtmlToTxtParse)
 	if err != nil {
 		return err
 	}

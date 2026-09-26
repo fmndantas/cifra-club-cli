@@ -35,7 +35,7 @@ func ConvertHtmlToTxtRegex(content string) (string, error) {
 	return strings.TrimSpace(text) + "\n", nil
 }
 
-func ConvertHtmlToTxtParse(content string) (string, error) {
+func ConvertHtmlToTxtParse(content string, transpose int) (string, error) {
 	document, err := netHtml.Parse(strings.NewReader(content))
 	if err != nil {
 		return "", err

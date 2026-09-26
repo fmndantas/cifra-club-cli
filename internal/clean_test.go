@@ -64,11 +64,13 @@ func TestChordChartConversionWithRegex(t *testing.T) {
 func TestChordChartConversionWithParse(t *testing.T) {
 	cases := []struct {
 		id           string
+		transpose    int
 		htmlFile     string
 		expectedFile string
 	}{
-		{"lilas", "lilas.html", "lilas.txt"},
-		{"um dia um adeus", "um-dia-um-adeus.html", "um-dia-um-adeus.txt"},
+		{"lilas", 0, "lilas.html", "lilas.txt"},
+		{"um dia um adeus", 0, "um-dia-um-adeus.html", "um-dia-um-adeus.txt"},
+		{"um dia um adeus", 1, "um-dia-um-adeus.html", "um-dia-um-adeus-1-above.txt"},
 	}
 	for _, tt := range cases {
 		t.Run(tt.id, func(t *testing.T) {
@@ -76,7 +78,7 @@ func TestChordChartConversionWithParse(t *testing.T) {
 			require.NoError(t, err, "read html file")
 			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
 			require.NoError(t, err, "read expected file")
-			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent))
+			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent), 0)
 			require.NoError(t, err)
 			assert.Equal(t, string(expectedContent), result, "result is not the expected")
 		})
