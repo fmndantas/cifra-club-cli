@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"errors"
+	"fmt"
 	"html"
 	"regexp"
 	"strings"
@@ -52,4 +54,38 @@ func ConvertHtmlToTxtParse(content string, transpose int) (string, error) {
 		}
 	}
 	return result.String(), nil
+}
+
+func ParseChord(chordString string) (Chord, error) {
+	if len(chordString) == 0 {
+		return Chord{}, errors.New("string parameter is empty")
+	}
+	var (
+		rootOptions = make([]Note, 0)
+		bassOptions = make([]Note, 0)
+	)
+	for _, note := range Notes {
+		if strings.HasPrefix(chordString, note.String()) {
+			rootOptions = append(rootOptions, note)
+		}
+	}
+	if len(rootOptions) == 0 {
+		return Chord{}, errors.New("no root was identified")
+	}
+	root := rootOptions[len(rootOptions)-1]
+	if strings.Contains(chordString, "/") {
+		for _, note := range Notes {
+			if strings.HasSuffix(chordString, note.String()) {
+				bassOptions = append(bassOptions, note)
+			}
+		}
+	}
+	chordStringWithoutRoot := strings.TrimPrefix(chordString, root.String())
+	if len(bassOptions) != 0 {
+		bass := bassOptions[len(bassOptions)-1]
+		extension := strings.TrimSuffix(chordStringWithoutRoot, fmt.Sprintf("/%s", bass.String()))
+		return CreateChordWithBass(root, extension, bass), nil
+	} else {
+		return CreateChord(root, chordStringWithoutRoot), nil
+	}
 }

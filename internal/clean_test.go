@@ -84,3 +84,30 @@ func TestChordChartConversionWithParse(t *testing.T) {
 		})
 	}
 }
+
+func TestChordParsing(t *testing.T) {
+	cases := []struct {
+		id            int
+		stringValue   string
+		expectedChord internal.Chord
+	}{
+		{1, "C", internal.CreateChord(internal.C, "")},
+		{2, "Cadd9", internal.CreateChord(internal.C, "add9")},
+		{3, "C/E", internal.CreateChordWithBass(internal.C, "", internal.E)},
+		{4, "C#M7/Bb", internal.CreateChordWithBass(internal.CSharp, "M7", internal.BFlat)},
+		{5, "F#7(#9/b9/#5)/G", internal.CreateChordWithBass(internal.FSharp, "7(#9/b9/#5)", internal.G)},
+		{6, "F#7(#9/b9/#5)", internal.CreateChord(internal.FSharp, "7(#9/b9/#5)")},
+	}
+	for _, tt := range cases {
+		t.Run(fmt.Sprintf("case-%d", tt.id), func(t *testing.T) {
+			result, err := internal.ParseChord(tt.stringValue)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedChord.Root, result.Root, "root")
+			assert.Equal(t, tt.expectedChord.Extension, result.Extension, "extension")
+			assert.Equal(t, tt.expectedChord.HasBass(), result.HasBass(), "has bass")
+			if tt.expectedChord.HasBass() {
+				assert.Equal(t, *tt.expectedChord.Bass, *result.Bass, "bass")
+			}
+		})
+	}
+}
