@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"html"
 	"regexp"
+	"slices"
 	"strings"
 
 	netHtml "golang.org/x/net/html"
+)
+
+const (
+	removeOneSpaceRune  = '@'
+	removeTwoSpacesRune = '$'
 )
 
 func ConvertHtmlToTxtRegex(content string) (string, error) {
@@ -42,18 +48,46 @@ func ConvertHtmlToTxtParse(content string, transpose int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var result strings.Builder
+	var (
+		sb   strings.Builder
+		errs error
+	)
 	for node := range document.Descendants() {
 		if node.Type == netHtml.ElementNode && node.Data == "pre" {
 			for d := range node.Descendants() {
+				isThisNodeAChord := d.Parent != nil && d.Parent.Type == netHtml.ElementNode && d.Parent.Data == "b"
 				if d.Type == netHtml.TextNode {
-					result.WriteString(d.Data)
+					if isThisNodeAChord {
+						originalChord, err := ParseChord(d.Data)
+						transposedChord := originalChord.Transpose(transpose)
+						if err != nil {
+							errs = errors.Join(err)
+						} else {
+							sb.WriteString(RespaceChord(originalChord, transposedChord))
+						}
+					} else {
+						sb.WriteString(d.Data)
+					}
 				}
 			}
-			result.WriteString("\n")
+			sb.WriteString("\n")
 		}
 	}
-	return result.String(), nil
+	sbResult := sb.String()
+	sb.Reset()
+	for line := range strings.Lines(sbResult) {
+		respacedLine, err := RespaceChordChartLine(line)
+		if err != nil {
+			errs = errors.Join(errs, err)
+		} else {
+			sb.WriteString(respacedLine)
+		}
+	}
+	if errs != nil {
+		return "", errs
+	} else {
+		return sb.String(), nil
+	}
 }
 
 func ParseChord(chordString string) (Chord, error) {
@@ -69,23 +103,115 @@ func ParseChord(chordString string) (Chord, error) {
 			rootOptions = append(rootOptions, note)
 		}
 	}
-	if len(rootOptions) == 0 {
-		return Chord{}, errors.New("no root was identified")
-	}
-	root := rootOptions[len(rootOptions)-1]
-	if strings.Contains(chordString, "/") {
-		for _, note := range Notes {
-			if strings.HasSuffix(chordString, note.String()) {
-				bassOptions = append(bassOptions, note)
-			}
+	getMostLenghtyNote := func(options []Note) (Note, error) {
+		if len(options) == 0 {
+			return 0, errors.New("getLenghtyNote: no options were available")
 		}
+		return slices.MaxFunc(
+			options,
+			func(n1 Note, n2 Note) int {
+				if len(n1.String()) > len(n2.String()) {
+					return 1
+				} else {
+					return -1
+				}
+			},
+		), nil
+	}
+	root, err := getMostLenghtyNote(rootOptions)
+	if err != nil {
+		return Chord{}, err
 	}
 	chordStringWithoutRoot := strings.TrimPrefix(chordString, root.String())
+	for _, note := range Notes {
+		if strings.HasSuffix(chordStringWithoutRoot, note.String()) {
+			bassOptions = append(bassOptions, note)
+		}
+	}
 	if len(bassOptions) != 0 {
-		bass := bassOptions[len(bassOptions)-1]
+		bass, err := getMostLenghtyNote(bassOptions)
+		if err != nil {
+			return Chord{}, err
+		}
 		extension := strings.TrimSuffix(chordStringWithoutRoot, fmt.Sprintf("/%s", bass.String()))
 		return CreateChordWithBass(root, extension, bass), nil
 	} else {
 		return CreateChord(root, chordStringWithoutRoot), nil
 	}
+}
+
+// TODO: add error to the return
+func RespaceChord(originalChord, transposedChord Chord) string {
+	var (
+		originalRepr      = originalChord.String()
+		transposedRepr    = transposedChord.String()
+		lenOriginalRepr   = len(originalRepr)
+		lenTransposedRepr = len(transposedRepr)
+	)
+	switch {
+	case lenOriginalRepr == lenTransposedRepr:
+		return transposedRepr
+	case lenOriginalRepr+1 == lenTransposedRepr:
+		return transposedRepr + string(removeOneSpaceRune)
+	case lenOriginalRepr+2 == lenTransposedRepr:
+		return transposedRepr + string(removeTwoSpacesRune)
+	case lenOriginalRepr > lenTransposedRepr:
+		return transposedRepr + strings.Repeat(" ", lenOriginalRepr-lenTransposedRepr)
+	default:
+		panic("TODO")
+	}
+}
+
+func RespaceChordChartLine(line string) (string, error) {
+	if !strings.HasSuffix(line, "\n") {
+		panic("TODO")
+	}
+	var (
+		shouldRemoveOneSpace  = false
+		shouldRemoveTwoSpaces = false
+		foundFirstSpace       = false
+		foundSecondSpace      = false
+		sb                    strings.Builder
+	)
+	for _, c := range line {
+		switch {
+		case c == removeOneSpaceRune:
+			shouldRemoveOneSpace = true
+			shouldRemoveTwoSpaces = false
+			foundFirstSpace = false
+			foundSecondSpace = false
+		case c == removeTwoSpacesRune:
+			shouldRemoveOneSpace = false
+			shouldRemoveTwoSpaces = true
+			foundFirstSpace = false
+			foundSecondSpace = false
+		case shouldRemoveOneSpace && c == ' ':
+			if !foundFirstSpace {
+				sb.WriteRune(c)
+				foundFirstSpace = true
+			} else {
+				shouldRemoveOneSpace = false
+				foundFirstSpace = false
+			}
+		case shouldRemoveTwoSpaces && c == ' ':
+			if !foundFirstSpace {
+				sb.WriteRune(c)
+				foundFirstSpace = true
+			} else if !foundSecondSpace {
+				foundSecondSpace = true
+			} else {
+				shouldRemoveTwoSpaces = false
+				foundSecondSpace = false
+			}
+		case (shouldRemoveOneSpace || shouldRemoveTwoSpaces) && c != ' ' && c != removeOneSpaceRune && c != removeTwoSpacesRune:
+			sb.WriteRune(c)
+			shouldRemoveOneSpace = false
+			shouldRemoveTwoSpaces = false
+			foundFirstSpace = false
+			foundSecondSpace = false
+		default:
+			sb.WriteRune(c)
+		}
+	}
+	return strings.TrimRightFunc(sb.String(), func(r rune) bool { return r == '\n' || r == ' ' }) + "\n", nil
 }

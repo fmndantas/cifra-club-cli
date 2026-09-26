@@ -70,7 +70,7 @@ func TestChordChartConversionWithParse(t *testing.T) {
 	}{
 		{"lilas", 0, "lilas.html", "lilas.txt"},
 		{"um dia um adeus", 0, "um-dia-um-adeus.html", "um-dia-um-adeus.txt"},
-		{"um dia um adeus", 1, "um-dia-um-adeus.html", "um-dia-um-adeus-1-above.txt"},
+		{"um dia um adeus 1 above", 1, "um-dia-um-adeus.html", "um-dia-um-adeus-1-above.txt"},
 	}
 	for _, tt := range cases {
 		t.Run(tt.id, func(t *testing.T) {
@@ -78,9 +78,14 @@ func TestChordChartConversionWithParse(t *testing.T) {
 			require.NoError(t, err, "read html file")
 			expectedContent, err := os.ReadFile(fmt.Sprintf("../examples/%s", tt.expectedFile))
 			require.NoError(t, err, "read expected file")
-			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent), 0)
+			result, err := internal.ConvertHtmlToTxtParse(string(htmlContent), tt.transpose)
 			require.NoError(t, err)
-			assert.Equal(t, string(expectedContent), result, "result is not the expected")
+			assert.Equal(
+				t,
+				string(expectedContent),
+				result,
+				"result is not the expected",
+			)
 		})
 	}
 }
@@ -88,15 +93,17 @@ func TestChordChartConversionWithParse(t *testing.T) {
 func TestChordParsing(t *testing.T) {
 	cases := []struct {
 		id            int
-		stringValue   string
 		expectedChord internal.Chord
+		stringValue   string
 	}{
-		{1, "C", internal.CreateChord(internal.C, "")},
-		{2, "Cadd9", internal.CreateChord(internal.C, "add9")},
-		{3, "C/E", internal.CreateChordWithBass(internal.C, "", internal.E)},
-		{4, "C#M7/Bb", internal.CreateChordWithBass(internal.CSharp, "M7", internal.BFlat)},
-		{5, "F#7(#9/b9/#5)/G", internal.CreateChordWithBass(internal.FSharp, "7(#9/b9/#5)", internal.G)},
-		{6, "F#7(#9/b9/#5)", internal.CreateChord(internal.FSharp, "7(#9/b9/#5)")},
+		{1, internal.CreateChord(internal.C, ""), "C"},
+		{2, internal.CreateChord(internal.C, "add9"), "Cadd9"},
+		{3, internal.CreateChordWithBass(internal.C, "", internal.E), "C/E"},
+		{4, internal.CreateChordWithBass(internal.CSharp, "M7", internal.BFlat), "C#M7/Bb"},
+		{5, internal.CreateChordWithBass(internal.FSharp, "7(#9/b9/#5)", internal.G), "F#7(#9/b9/#5)/G"},
+		{6, internal.CreateChord(internal.FSharp, "7(#9/b9/#5)"), "F#7(#9/b9/#5)"},
+		{7, internal.CreateChordWithBass(internal.AFlat, "", internal.C), "Ab/C"},
+		{8, internal.CreateChordWithBass(internal.EFlat, "", internal.G), "Eb/G"},
 	}
 	for _, tt := range cases {
 		t.Run(fmt.Sprintf("case-%d", tt.id), func(t *testing.T) {
@@ -108,6 +115,63 @@ func TestChordParsing(t *testing.T) {
 			if tt.expectedChord.HasBass() {
 				assert.Equal(t, *tt.expectedChord.Bass, *result.Bass, "bass")
 			}
+		})
+	}
+}
+
+func TestRespaceChord(t *testing.T) {
+	cases := []struct {
+		id                             int
+		originalChord, transposedChord internal.Chord
+		expectedResult                 string
+	}{
+		{1, internal.CreateChord(internal.C, ""), internal.CreateChord(internal.C, ""), "C"},
+		{2, internal.CreateChord(internal.C, ""), internal.CreateChord(internal.CSharp, ""), "C#@"},
+		{3, internal.CreateChord(internal.CSharp, ""), internal.CreateChord(internal.C, ""), "C "},
+		{4, internal.CreateChord(internal.CSharp, "m7"), internal.CreateChord(internal.D, "m7"), "Dm7 "},
+		{
+			5,
+			internal.CreateChordWithBass(internal.FSharp, "", internal.ASharp),
+			internal.CreateChordWithBass(internal.G, "", internal.B),
+			"G/B  ",
+		},
+		{
+			6,
+			internal.CreateChordWithBass(internal.F, "", internal.A),
+			internal.CreateChordWithBass(internal.FSharp, "", internal.ASharp),
+			"F#/A#$",
+		},
+	}
+	for _, tt := range cases {
+		t.Run(fmt.Sprintf("case-%d", tt.id), func(t *testing.T) {
+			result := internal.RespaceChord(tt.originalChord, tt.transposedChord)
+			assert.Equal(t, tt.expectedResult, result)
+		})
+	}
+}
+
+func TestRespaceChordChartLine(t *testing.T) {
+	cases := []struct {
+		id                           int
+		originalText, expectedResult string
+	}{
+		{1, "Cm7@  Dm\n", "Cm7 Dm\n"},
+		{2, "Cm7@ Dm\n", "Cm7 Dm\n"},
+		{3, "Cm7@ Dm Em\n", "Cm7 Dm Em\n"}, // test if shouldRemove resets between chords
+		{4, "Cm7 Dm Em@\n", "Cm7 Dm Em\n"},
+		{5, "Cm7 Dm Em$\n", "Cm7 Dm Em\n"},
+		{6, "Cm7 Dm$ Em\n", "Cm7 Dm Em\n"},
+		{7, "Cm7 Dm$  Em\n", "Cm7 Dm Em\n"},
+		{8, "Cm7 Dm$   Em\n", "Cm7 Dm Em\n"},
+		{9, "Cm7 Dm$   Em Cm\n", "Cm7 Dm Em Cm\n"},
+		{10, "Cm7 Dm$    Em Cm\n", "Cm7 Dm  Em Cm\n"},
+		{10, "Cm7$Dm   Em Cm\n", "Cm7Dm   Em Cm\n"},
+	}
+	for _, tt := range cases {
+		t.Run(fmt.Sprintf("case-%d", tt.id), func(t *testing.T) {
+			result, err := internal.RespaceChordChartLine(tt.originalText)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedResult, result)
 		})
 	}
 }
