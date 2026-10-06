@@ -1,4 +1,4 @@
-# cifra-club-cli
+# cifraclubcli
 
 A small Go CLI to search and download chord charts (cifras) from
 [Cifra Club](https://www.cifraclub.com.br).
@@ -9,7 +9,7 @@ compose well in scripts, cron jobs, and pipelines.
 ## Install
 
 ```bash
-go build -o cifra-club-cli .
+go build -o cifraclubcli .
 ```
 
 ## Usage
@@ -17,7 +17,7 @@ go build -o cifra-club-cli .
 ### Search
 
 ```bash
-cifra-club-cli search "djavan lilas" --limit=5
+cifraclubcli search "djavan lilas" --limit=5
 ```
 
 Prints matching songs with their `imprimir.html` URLs, one per line:
@@ -29,7 +29,7 @@ Prints matching songs with their `imprimir.html` URLs, one per line:
 ### Download
 
 ```bash
-cifra-club-cli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" > lilas.txt
+cifraclubcli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" > lilas.txt
 ```
 
 Fetches the print page and writes the cleaned chord chart as plain text to stdout.
@@ -37,7 +37,7 @@ Fetches the print page and writes the cleaned chord chart as plain text to stdou
 Transpose all chords by N semitones (negative = down) with `--transpose`:
 
 ```bash
-cifra-club-cli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" --transpose=2
+cifraclubcli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" --transpose=2
 ```
 
 ### Options
