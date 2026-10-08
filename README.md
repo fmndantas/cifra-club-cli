@@ -64,6 +64,10 @@ cifraclubcli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" 
 See [DISCOVERIES.md](DISCOVERIES.md) for details on the search API
 (`solr.sscdn.co`), the anti-bot rules for downloading, and chart extraction.
 
+## Limitations
+
+- `--transpose` only transposes chords; tablatures (tabs) are not transposed.
+
 ## Tests
 
 ```bash
