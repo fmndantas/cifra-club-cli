@@ -34,6 +34,16 @@ cifraclubcli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" 
 
 Fetches the print page and writes the cleaned chord chart as plain text to stdout.
 
+Search and download in one interactive command:
+
+```bash
+cifraclubcli download --query="djavan lilas" > lilas.txt
+```
+
+The command lists matching charts, asks you to select a zero-based result index,
+then downloads the selected chart. The selection prompt is written to stderr so
+redirecting stdout saves only the chart text.
+
 Transpose all chords by N semitones (negative = down) with `--transpose`:
 
 ```bash
@@ -45,6 +55,8 @@ cifraclubcli download "https://www.cifraclub.com.br/djavan/lilas/imprimir.html" 
 | Flag | Command | Description |
 |---|---|---|
 | `--limit`, `-l` | search | Maximum number of results (default: 10) |
+| `--query` | download | Search query; prompts for a result to download |
+| `--limit`, `-l` | download | Maximum number of search results (default: 10) |
 | `--transpose`, `-t` | download | Semitones to transpose chords (default: 0) |
 | `--debug` | global | Debug logging (search URL, raw API response, etc.) |
 
