@@ -85,9 +85,8 @@ func (n *Note) ShouldTransposeToSharp() bool {
 }
 
 func (n *Note) Transpose(semitones int) Note {
-	// TODO: this makes sense?
 	if n == nil {
-		return C
+		panic("nil *Note")
 	}
 	idx := noteToIdx[*n]
 	switch {

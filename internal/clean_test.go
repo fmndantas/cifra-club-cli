@@ -144,7 +144,8 @@ func TestRespaceChord(t *testing.T) {
 	}
 	for _, tt := range cases {
 		t.Run(fmt.Sprintf("case-%d", tt.id), func(t *testing.T) {
-			result := internal.RespaceChord(tt.originalChord, tt.transposedChord)
+			result, err := internal.RespaceChord(tt.originalChord, tt.transposedChord)
+			require.NoError(t, err)
 			assert.Equal(t, tt.expectedResult, result)
 		})
 	}
@@ -157,7 +158,7 @@ func TestRespaceChordChartLine(t *testing.T) {
 	}{
 		{1, "Cm7@  Dm\n", "Cm7 Dm\n"},
 		{2, "Cm7@ Dm\n", "Cm7 Dm\n"},
-		{3, "Cm7@ Dm Em\n", "Cm7 Dm Em\n"}, // test if shouldRemove resets between chords
+		{3, "Cm7@ Dm Em\n", "Cm7 Dm Em\n"}, // test if space removal resets between chords
 		{4, "Cm7 Dm Em@\n", "Cm7 Dm Em\n"},
 		{5, "Cm7 Dm Em$\n", "Cm7 Dm Em\n"},
 		{6, "Cm7 Dm$ Em\n", "Cm7 Dm Em\n"},

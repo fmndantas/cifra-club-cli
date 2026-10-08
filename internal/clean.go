@@ -48,46 +48,44 @@ func ConvertHtmlToTxtParse(content string, transpose int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var (
-		sb   strings.Builder
-		errs error
-	)
+	var sb strings.Builder
 	for node := range document.Descendants() {
-		if node.Type == netHtml.ElementNode && node.Data == "pre" {
-			for d := range node.Descendants() {
-				isThisNodeAChord := d.Parent != nil && d.Parent.Type == netHtml.ElementNode && d.Parent.Data == "b"
-				if d.Type == netHtml.TextNode {
-					if isThisNodeAChord {
-						originalChord, err := ParseChord(d.Data)
-						transposedChord := originalChord.Transpose(transpose)
-						if err != nil {
-							errs = errors.Join(err)
-						} else {
-							sb.WriteString(RespaceChord(originalChord, transposedChord))
-						}
-					} else {
-						sb.WriteString(d.Data)
-					}
-				}
-			}
-			sb.WriteString("\n")
+		if node.Type != netHtml.ElementNode || node.Data != "pre" {
+			continue
 		}
+		for d := range node.Descendants() {
+			if d.Type != netHtml.TextNode {
+				continue
+			}
+			isThisNodeAChord := d.Parent != nil && d.Parent.Type == netHtml.ElementNode && d.Parent.Data == "b"
+			if isThisNodeAChord {
+				originalChord, err := ParseChord(d.Data)
+				if err != nil {
+					return "", err
+				}
+				transposedChord := originalChord.Transpose(transpose)
+				respacedChord, err := RespaceChord(originalChord, transposedChord)
+				if err != nil {
+					return "", err
+				}
+				sb.WriteString(respacedChord)
+			} else {
+				sb.WriteString(d.Data)
+			}
+		}
+		sb.WriteString("\n")
 	}
 	sbResult := sb.String()
 	sb.Reset()
 	for line := range strings.Lines(sbResult) {
 		respacedLine, err := RespaceChordChartLine(line)
 		if err != nil {
-			errs = errors.Join(errs, err)
+			return "", err
 		} else {
 			sb.WriteString(respacedLine)
 		}
 	}
-	if errs != nil {
-		return "", errs
-	} else {
-		return sb.String(), nil
-	}
+	return sb.String(), nil
 }
 
 func ParseChord(chordString string) (Chord, error) {
@@ -140,8 +138,7 @@ func ParseChord(chordString string) (Chord, error) {
 	}
 }
 
-// TODO: add error to the return
-func RespaceChord(originalChord, transposedChord Chord) string {
+func RespaceChord(originalChord, transposedChord Chord) (string, error) {
 	var (
 		originalRepr      = originalChord.String()
 		transposedRepr    = transposedChord.String()
@@ -150,21 +147,25 @@ func RespaceChord(originalChord, transposedChord Chord) string {
 	)
 	switch {
 	case lenOriginalRepr == lenTransposedRepr:
-		return transposedRepr
+		return transposedRepr, nil
 	case lenOriginalRepr+1 == lenTransposedRepr:
-		return transposedRepr + string(removeOneSpaceRune)
+		return transposedRepr + string(removeOneSpaceRune), nil
 	case lenOriginalRepr+2 == lenTransposedRepr:
-		return transposedRepr + string(removeTwoSpacesRune)
+		return transposedRepr + string(removeTwoSpacesRune), nil
 	case lenOriginalRepr > lenTransposedRepr:
-		return transposedRepr + strings.Repeat(" ", lenOriginalRepr-lenTransposedRepr)
+		return transposedRepr + strings.Repeat(" ", lenOriginalRepr-lenTransposedRepr), nil
 	default:
-		panic("TODO")
+		return "", fmt.Errorf(
+			"unexpected case in chord respacing. originalRepr=%s, transposedRepr=%s",
+			originalRepr,
+			transposedRepr,
+		)
 	}
 }
 
 func RespaceChordChartLine(line string) (string, error) {
 	if !strings.HasSuffix(line, "\n") {
-		panic("TODO")
+		return "", errors.New("line does not ends with \"\n\"")
 	}
 	var (
 		shouldRemoveOneSpace  = false
