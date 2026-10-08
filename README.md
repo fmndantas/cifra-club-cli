@@ -44,6 +44,14 @@ The command lists matching charts, asks you to select a zero-based result index,
 then downloads the selected chart. The selection prompt is written to stderr so
 redirecting stdout saves only the chart text.
 
+For example, the interactive selection looks like:
+
+```
+[0] https://www.cifraclub.com.br/djavan/lilas/imprimir.html
+[1] https://www.cifraclub.com.br/djavan/lilas-acordes/imprimir.html
+Select a result: 0
+```
+
 Transpose all chords by N semitones (negative = down) with `--transpose`:
 
 ```bash
